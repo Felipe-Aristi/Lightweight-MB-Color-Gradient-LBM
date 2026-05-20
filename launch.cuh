@@ -54,7 +54,6 @@ inline void launch_InletBC(MomentsDevice A, const CudaConfig &cfg)
     InletBC<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(A);
 
     CUDA_CHECK(cudaGetLastError());
-    CUDA_CHECK(cudaDeviceSynchronize());
 }
 
 inline void launch_OutletNeumannBC(MomentsDevice A, const CudaConfig &cfg)
@@ -62,13 +61,13 @@ inline void launch_OutletNeumannBC(MomentsDevice A, const CudaConfig &cfg)
     OutletNeumannBC<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(A);
 
     CUDA_CHECK(cudaGetLastError());
-    CUDA_CHECK(cudaDeviceSynchronize());
 }
 
 inline void launch_JetBoundaryConditions(MomentsDevice A, const CudaConfig &cfg)
 {
-    launch_InletBC(A, cfg);
-    launch_OutletNeumannBC(A, cfg);
+    JetBoundaryConditions<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(A);
+
+    CUDA_CHECK(cudaGetLastError());
 }
 
 // =======================================================
@@ -80,7 +79,6 @@ inline void launch_RCS(const MomentsDevice A, MomentsDevice B, const CudaConfig 
     RCSKernel<<<cfg.grid, cfg.block>>>(A, B);
 
     CUDA_CHECK(cudaGetLastError());
-    CUDA_CHECK(cudaDeviceSynchronize());
 }
 
 #endif

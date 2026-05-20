@@ -8,6 +8,18 @@
 #include "../constants.cuh"
 #include "cudaUtilities.cuh"
 
+#ifndef LBM_BLOCK_X
+#define LBM_BLOCK_X 32
+#endif
+
+#ifndef LBM_BLOCK_Y
+#define LBM_BLOCK_Y 4
+#endif
+
+#ifndef LBM_BLOCK_Z
+#define LBM_BLOCK_Z 4
+#endif
+
 __host__ __device__ __forceinline__ int ceil_div(size_t a, size_t b)
 {
     return (a + b - 1) / b;
@@ -22,7 +34,7 @@ struct CudaConfig
 __host__ __forceinline__ CudaConfig make_cudaConfig()
 {
     CudaConfig cfg{};
-    cfg.block = dim3(32, 4, 2);
+    cfg.block = dim3(LBM_BLOCK_X, LBM_BLOCK_Y, LBM_BLOCK_Z);
     cfg.grid = dim3(
         ceil_div((size_t)NX, (size_t)cfg.block.x),
         ceil_div((size_t)NY, (size_t)cfg.block.y),

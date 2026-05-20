@@ -91,6 +91,20 @@ __global__ void OutletNeumannBC(MomentsDevice A)
     outlet_neumann_bc_calculation(A, x, z);
 }
 
+__global__ void JetBoundaryConditions(MomentsDevice A)
+{
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t z = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if (inlet_outlet_interior(x, z))
+    {
+        return;
+    }
+
+    inlet_bc_calculation(A, x, z);
+    outlet_neumann_bc_calculation(A, x, z);
+}
+
 // =======================================================
 // Main RCS kernel
 // =======================================================

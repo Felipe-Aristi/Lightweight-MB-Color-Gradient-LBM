@@ -101,6 +101,28 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
 {
     const label_t id = idx(x, y, z);
 
+    const real_t *__restrict__ rho = A.rho;
+    const real_t *__restrict__ ux = A.ux;
+    const real_t *__restrict__ uy = A.uy;
+    const real_t *__restrict__ uz = A.uz;
+    const real_t *__restrict__ Pixx = A.Pixx;
+    const real_t *__restrict__ Pixy = A.Pixy;
+    const real_t *__restrict__ Piyy = A.Piyy;
+    const real_t *__restrict__ Piyz = A.Piyz;
+    const real_t *__restrict__ Pizz = A.Pizz;
+    const real_t *__restrict__ Pixz = A.Pixz;
+
+    real_t *__restrict__ rho_next = B.rho;
+    real_t *__restrict__ ux_next = B.ux;
+    real_t *__restrict__ uy_next = B.uy;
+    real_t *__restrict__ uz_next = B.uz;
+    real_t *__restrict__ Pixx_next = B.Pixx;
+    real_t *__restrict__ Pixy_next = B.Pixy;
+    real_t *__restrict__ Piyy_next = B.Piyy;
+    real_t *__restrict__ Piyz_next = B.Piyz;
+    real_t *__restrict__ Pizz_next = B.Pizz;
+    real_t *__restrict__ Pixz_next = B.Pixz;
+
     real_t sum = static_cast<real_t>(0);
 
     real_t jx = static_cast<real_t>(0);
@@ -114,6 +136,8 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
     real_t Azz = static_cast<real_t>(0);
     real_t Axz = static_cast<real_t>(0);
 
+    const real_t oms_local = oms_sponge(y);
+
     constexpr_for<0, Q>(
         [&] __device__(auto I)
         {
@@ -124,25 +148,25 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
             const label_t src = pullidPeri<i>(x, y, z);
 
             // Read moments from A at the source cell
-            const real_t rho_s = A.rho[src];
+            const real_t rho_s = rho[src];
 
-            const real_t ux_s = A.ux[src];
-            const real_t uy_s = A.uy[src];
-            const real_t uz_s = A.uz[src];
+            const real_t ux_s = ux[src];
+            const real_t uy_s = uy[src];
+            const real_t uz_s = uz[src];
 
-            const real_t Pixx_s = A.Pixx[src];
-            const real_t Pixy_s = A.Pixy[src];
-            const real_t Piyy_s = A.Piyy[src];
-            const real_t Piyz_s = A.Piyz[src];
-            const real_t Pizz_s = A.Pizz[src];
-            const real_t Pixz_s = A.Pixz[src];
+            const real_t Pixx_s = Pixx[src];
+            const real_t Pixy_s = Pixy[src];
+            const real_t Piyy_s = Piyy[src];
+            const real_t Piyz_s = Piyz[src];
+            const real_t Pizz_s = Pizz[src];
+            const real_t Pixz_s = Pixz[src];
 
             // RCS
             
             const real_t fieq = feq<i>(rho_s, ux_s, uy_s, uz_s);
             const real_t fineqr = fneqr<i>(Pixx_s, Pixy_s, Piyy_s, Piyz_s, Pizz_s, Pixz_s, ux_s, uy_s, uz_s);
 
-            const real_t fi = fieq + oms_sponge(y) * fineqr;
+            const real_t fi = fieq + oms_local * fineqr;
 
             // New moments calculation
             sum += fi;
@@ -171,7 +195,7 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
 
     const real_t rho_t = sum;
 
-    B.rho[id] = rho_t;
+    rho_next[id] = rho_t;
 
     const real_t inv_rho = static_cast<real_t>(1) / rho_t;
 
@@ -179,16 +203,16 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
     const real_t vy = jy * inv_rho;
     const real_t vz = jz * inv_rho;
 
-    B.ux[id] = vx;
-    B.uy[id] = vy;
-    B.uz[id] = vz;
+    ux_next[id] = vx;
+    uy_next[id] = vy;
+    uz_next[id] = vz;
 
-    B.Pixx[id] = Axx - rho_t * vx * vx;
-    B.Pixy[id] = Axy - rho_t * vx * vy;
-    B.Piyy[id] = Ayy - rho_t * vy * vy;
-    B.Piyz[id] = Ayz - rho_t * vy * vz;
-    B.Pizz[id] = Azz - rho_t * vz * vz;
-    B.Pixz[id] = Axz - rho_t * vx * vz;
+    Pixx_next[id] = Axx - rho_t * vx * vx;
+    Pixy_next[id] = Axy - rho_t * vx * vy;
+    Piyy_next[id] = Ayy - rho_t * vy * vy;
+    Piyz_next[id] = Ayz - rho_t * vy * vz;
+    Pizz_next[id] = Azz - rho_t * vz * vz;
+    Pixz_next[id] = Axz - rho_t * vx * vz;
 }
 
 #endif

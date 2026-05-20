@@ -17,7 +17,7 @@ int main()
 
     CUDA_CHECK(cudaSetDevice(deviceID));
 
-    CudaConfig cfg = make_cudaConfig();
+    CudaConfig cfg = print_device_and_make_config(deviceID);
 
     LbmDevice d = allocate_device_memory();
     LbmHost h = allocate_host_memory();
@@ -27,10 +27,10 @@ int main()
 
     MlupsCounter mlups = make_mlups_counter();
     mlups_start(mlups);
-    mlups_print_progress(mlups, 0, final_step);
 
     {
         const MlupsPause output_pause(mlups);
+        mlups_print_progress(mlups, 0, final_step);
         write_midplane_jet_vti_step_device(0, d.A);
     }
 
@@ -45,12 +45,8 @@ int main()
 
         if (NOUTPUT > 0 && step % NOUTPUT == 0)
         {
-            mlups_print_progress(mlups, step, final_step);
-        }
-
-        if (step % NOUTPUT == 0)
-        {
             const MlupsPause output_pause(mlups);
+            mlups_print_progress(mlups, step, final_step);
             // write_vti_step_device(step, d.A, h);
             write_midplane_jet_vti_step_device(step, d.A);
         }
@@ -60,6 +56,7 @@ int main()
     mlups_print_progress(mlups, final_step, final_step);
     mlups_finish_progress();
     mlups_print(mlups);
+    mlups_destroy(mlups);
 
     free_host_memory(h);
     free_device_memory(d);

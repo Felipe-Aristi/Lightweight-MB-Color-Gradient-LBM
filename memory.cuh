@@ -13,18 +13,18 @@
 
 struct MomentsDevice
 {
-    real_t *rho = nullptr;
+    real_t *__restrict__ rho = nullptr;
 
-    real_t *ux = nullptr;
-    real_t *uy = nullptr;
-    real_t *uz = nullptr;
+    real_t *__restrict__ ux = nullptr;
+    real_t *__restrict__ uy = nullptr;
+    real_t *__restrict__ uz = nullptr;
 
-    real_t *Pixx = nullptr;
-    real_t *Pixy = nullptr;
-    real_t *Piyy = nullptr;
-    real_t *Piyz = nullptr;
-    real_t *Pizz = nullptr;
-    real_t *Pixz = nullptr;
+    real_t *__restrict__ Pixx = nullptr;
+    real_t *__restrict__ Pixy = nullptr;
+    real_t *__restrict__ Piyy = nullptr;
+    real_t *__restrict__ Piyz = nullptr;
+    real_t *__restrict__ Pizz = nullptr;
+    real_t *__restrict__ Pixz = nullptr;
 };
 
 // =======================================================
@@ -56,18 +56,25 @@ struct LbmHost
 
 inline void allocate_device(MomentsDevice &d)
 {
-    CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&d.rho), bytesCell));
+    auto allocate_array = []()
+    {
+        real_t *ptr = nullptr;
+        CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&ptr), bytesCell));
+        return ptr;
+    };
 
-    CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&d.ux), bytesCell));
-    CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&d.uy), bytesCell));
-    CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&d.uz), bytesCell));
+    d.rho = allocate_array();
 
-    CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&d.Pixx), bytesCell));
-    CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&d.Pixy), bytesCell));
-    CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&d.Piyy), bytesCell));
-    CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&d.Piyz), bytesCell));
-    CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&d.Pizz), bytesCell));
-    CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&d.Pixz), bytesCell));
+    d.ux = allocate_array();
+    d.uy = allocate_array();
+    d.uz = allocate_array();
+
+    d.Pixx = allocate_array();
+    d.Pixy = allocate_array();
+    d.Piyy = allocate_array();
+    d.Piyz = allocate_array();
+    d.Pizz = allocate_array();
+    d.Pixz = allocate_array();
 }
 
 inline void zero_device(const MomentsDevice &d)

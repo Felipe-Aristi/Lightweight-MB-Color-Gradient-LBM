@@ -21,6 +21,8 @@ __global__ void InletBC(MomentsDevice A);
 
 __global__ void OutletNeumannBC(MomentsDevice A);
 
+__global__ void JetBoundaryConditions(MomentsDevice A);
+
 __global__ void RCSKernel(const MomentsDevice A, MomentsDevice B);
 
 #endif
