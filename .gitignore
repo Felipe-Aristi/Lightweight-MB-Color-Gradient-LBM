@@ -1,0 +1,49 @@
+# Build folders
+build/
+cmake-build-*/
+bin/
+obj/
+
+# Compiled files
+*.o
+*.out
+*.exe
+*.so
+*.a
+
+# CUDA generated files
+*.ptx
+*.cubin
+*.fatbin
+
+# Visual Studio Code
+.vscode/
+
+# Temporary files
+*.tmp
+*.log
+
+# Simulation output
+*.vtk
+*.vti
+*.vtp
+*.pvti
+*.csv
+*.dat
+*.bin
+
+# Output folders
+VTK/
+JET_VTK/
+output/
+outputs/
+results/
+data/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS files
+.DS_Store
+Thumbs.db
