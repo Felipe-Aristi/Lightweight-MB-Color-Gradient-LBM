@@ -10,7 +10,7 @@
 __host__ __device__ [[nodiscard]] constexpr inline label_t idx(const label_t x, const label_t y, const label_t z) noexcept
 {
     // return x + NX * (y + NY * z);
-    return x + y * NX + z * NX * NY;
+    return x + y * NX + z * NXNY;
 }
 
 #endif

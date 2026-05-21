@@ -14,6 +14,7 @@ inline constexpr int NSTATS_SAMPLE = 20;
 inline constexpr label_t NX = static_cast<label_t>(128);
 inline constexpr label_t NZ = static_cast<label_t>(128);
 inline constexpr label_t NY = static_cast<label_t>(400);
+inline constexpr label_t NXNY = NX * NY;
 inline constexpr label_t sponge_cells = static_cast<label_t>(34);
 
 inline constexpr label_t Ncells = NX * NY * NZ;
