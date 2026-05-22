@@ -6,6 +6,18 @@
 #include "../constants.cuh"
 
 // =======================================================
+// Phase field || psi = +1 in the self phase || psi = -1 in the other phase
+// =======================================================
+
+__device__ __forceinline__ real_t psi(const real_t rho_self, const real_t rho_other) noexcept
+{
+    const real_t rho_sum = rho_self + rho_other;
+    const real_t rho_diff = rho_self - rho_other;
+
+    return rho_diff / rho_sum;
+}
+
+// =======================================================
 // Jet mask
 // =======================================================
 

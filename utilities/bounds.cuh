@@ -137,10 +137,10 @@ __device__ [[nodiscard]] __forceinline__ label_t pullidPeri(const label_t x,
 {
     return idx(
         wrapx(pullx<I>(x)),
-        pully<I>(y),
+        wrapy(pully<I>(y)),
         wrapz(pullz<I>(z)));
 
-    // wrapy(pully<I>(y)),
+    // wrapy(pully<I>(y)) ,  pully<I>(y)
 }
 
 #endif

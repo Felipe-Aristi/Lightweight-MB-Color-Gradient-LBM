@@ -23,7 +23,8 @@ int main()
     LbmHost h = allocate_host_memory();
 
     // launch_InitTwoShearLayers(d.A, cfg);
-    launch_InitJet(d.A, cfg);
+    // launch_InitJet(d.A, cfg);
+    launch_InitStaticBubble(d.A, cfg);
 
     MlupsCounter mlups = make_mlups_counter();
     mlups_start(mlups);
@@ -31,24 +32,24 @@ int main()
     {
         const MlupsPause output_pause(mlups);
         mlups_print_progress(mlups, 0, final_step);
-        write_midplane_jet_vti_step_device(0, d.A);
+        write_vti_step_device(0, d.A, h);
     }
 
     for (int step = 1; step < NSTEP; ++step)
     {
-        launch_JetBoundaryConditions(d.A, cfg);
+        // launch_JetBoundaryConditions(d.A, cfg);
 
         launch_RCS(d.A, d.B, cfg);
 
         swap_moments(d.A, d.B);
+
         mlups_count_step(mlups);
 
         if (NOUTPUT > 0 && step % NOUTPUT == 0)
         {
             const MlupsPause output_pause(mlups);
             mlups_print_progress(mlups, step, final_step);
-            // write_vti_step_device(step, d.A, h);
-            write_midplane_jet_vti_step_device(step, d.A);
+            write_vti_step_device(step, d.A, h);
         }
     }
 

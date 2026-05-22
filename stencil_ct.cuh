@@ -202,7 +202,7 @@ namespace D3Q27
     __host__ __device__ constexpr int offset() noexcept
     {
         return cx<I>() + static_cast<int>(NX) * cy<I>() +
-               static_cast<int>(NX) * static_cast<int>(NY) * cz<I>();
+               static_cast<int>(NXNY) * cz<I>();
     }
 
     template <label_t I>

@@ -1,9 +1,10 @@
 #ifndef VTIWRITER_CUH
 #define VTIWRITER_CUH
 
+#include <cuda_runtime.h>
+
 #include <cmath>
 #include <cstdint>
-#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -18,10 +19,9 @@
 
 #include "../utilities/types.cuh"
 #include "../utilities/cudaUtilities.cuh"
-#include "../utilities/indexing.cuh"
 
 // =======================================================
-// Output directories
+// Output directory
 // =======================================================
 
 inline std::filesystem::path default_out_dir()
@@ -30,20 +30,11 @@ inline std::filesystem::path default_out_dir()
 
     folder_name << "Re"
                 << static_cast<int>(std::round(Re))
-                << "_vtifiles";
+                << "_We"
+                << static_cast<int>(std::round(We))
+                << "_bubble_vtifiles";
 
-    return std::filesystem::current_path() / "JET_VTK" / folder_name.str();
-}
-
-inline std::filesystem::path default_slice_out_dir()
-{
-    std::ostringstream folder_name;
-
-    folder_name << "Re"
-                << static_cast<int>(std::round(Re))
-                << "_midplane_vtifiles";
-
-    return std::filesystem::current_path() / "JET_VTK" / folder_name.str();
+    return std::filesystem::current_path() / "BUBBLE_VTK" / folder_name.str();
 }
 
 // =======================================================
@@ -63,66 +54,123 @@ inline const char *vtk_real_type()
 }
 
 // =======================================================
-// Base64 encoder
+// Base64 stream encoder
 // =======================================================
 
-inline std::string base64_encode(
-    const unsigned char *data,
-    const std::size_t len)
+class Base64Stream
 {
+public:
+    explicit Base64Stream(std::ostream &stream)
+        : out(stream)
+    {
+        encoded.reserve(buffer_limit);
+    }
+
+    void write(const void *data, const std::size_t len)
+    {
+        const auto *bytes = static_cast<const unsigned char *>(data);
+
+        std::size_t i = 0;
+
+        if (tail_size > 0)
+        {
+            while (tail_size < 3 && i < len)
+            {
+                tail[tail_size++] = bytes[i++];
+            }
+
+            if (tail_size == 3)
+            {
+                emit(tail[0], tail[1], tail[2], 3);
+                tail_size = 0;
+            }
+        }
+
+        while (i + 3 <= len)
+        {
+            emit(bytes[i], bytes[i + 1], bytes[i + 2], 3);
+            i += 3;
+        }
+
+        while (i < len)
+        {
+            tail[tail_size++] = bytes[i++];
+        }
+    }
+
+    void finish()
+    {
+        if (tail_size == 1)
+        {
+            emit(tail[0], 0, 0, 1);
+        }
+        else if (tail_size == 2)
+        {
+            emit(tail[0], tail[1], 0, 2);
+        }
+
+        tail_size = 0;
+        flush();
+    }
+
+private:
     static constexpr char table[] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz"
         "0123456789+/";
 
-    std::string out;
+    static constexpr std::size_t buffer_limit = 1U << 20;
 
-    out.reserve(((len + 2) / 3) * 4);
+    std::ostream &out;
+    std::string encoded;
 
-    for (std::size_t i = 0; i < len; i += 3)
+    unsigned char tail[3]{};
+    std::size_t tail_size = 0;
+
+    void emit(
+        const unsigned char b0,
+        const unsigned char b1,
+        const unsigned char b2,
+        const std::size_t valid)
     {
-        const std::uint32_t b0 = data[i];
-        const std::uint32_t b1 = (i + 1 < len) ? data[i + 1] : 0;
-        const std::uint32_t b2 = (i + 2 < len) ? data[i + 2] : 0;
+        const std::uint32_t triple =
+            (static_cast<std::uint32_t>(b0) << 16) |
+            (static_cast<std::uint32_t>(b1) << 8) |
+            static_cast<std::uint32_t>(b2);
 
-        const std::uint32_t triple = (b0 << 16) | (b1 << 8) | b2;
+        encoded.push_back(table[(triple >> 18) & 0x3F]);
+        encoded.push_back(table[(triple >> 12) & 0x3F]);
+        encoded.push_back(valid > 1 ? table[(triple >> 6) & 0x3F] : '=');
+        encoded.push_back(valid > 2 ? table[triple & 0x3F] : '=');
 
-        out.push_back(table[(triple >> 18) & 0x3F]);
-        out.push_back(table[(triple >> 12) & 0x3F]);
-
-        if (i + 1 < len)
+        if (encoded.size() >= buffer_limit)
         {
-            out.push_back(table[(triple >> 6) & 0x3F]);
-        }
-        else
-        {
-            out.push_back('=');
-        }
-
-        if (i + 2 < len)
-        {
-            out.push_back(table[triple & 0x3F]);
-        }
-        else
-        {
-            out.push_back('=');
+            flush();
         }
     }
 
-    return out;
-}
+    void flush()
+    {
+        if (!encoded.empty())
+        {
+            out.write(encoded.data(), static_cast<std::streamsize>(encoded.size()));
+            encoded.clear();
+        }
+    }
+};
 
 // =======================================================
-// Binary array encoding
+// Binary array writers
 // =======================================================
 //
 // VTK XML binary format expects:
 //
 // [UInt64 byte_count][raw bytes]
 //
-// and the whole block is Base64 encoded.
+// and then the whole block is Base64 encoded.
 
-inline std::string encode_scalar_array_binary(
+inline void write_binary_scalar_array(
+    std::ostream &out,
     const real_t *data,
     const std::size_t nvals)
 {
@@ -130,23 +178,61 @@ inline std::string encode_scalar_array_binary(
         static_cast<std::uint64_t>(nvals) *
         static_cast<std::uint64_t>(sizeof(real_t));
 
-    std::vector<unsigned char> buffer(
-        sizeof(std::uint64_t) + static_cast<std::size_t>(nbytes));
+    Base64Stream encoder(out);
 
-    std::memcpy(
-        buffer.data(),
-        &nbytes,
-        sizeof(std::uint64_t));
+    encoder.write(&nbytes, sizeof(nbytes));
+    encoder.write(data, static_cast<std::size_t>(nbytes));
 
-    std::memcpy(
-        buffer.data() + sizeof(std::uint64_t),
-        data,
-        static_cast<std::size_t>(nbytes));
+    encoder.finish();
 
-    return base64_encode(buffer.data(), buffer.size());
+    out << '\n';
 }
 
-inline std::string encode_vec3_array_binary(
+inline void write_binary_sum_array(
+    std::ostream &out,
+    const real_t *a,
+    const real_t *b,
+    const std::size_t nvals)
+{
+    const std::uint64_t nbytes =
+        static_cast<std::uint64_t>(nvals) *
+        static_cast<std::uint64_t>(sizeof(real_t));
+
+    Base64Stream encoder(out);
+
+    encoder.write(&nbytes, sizeof(nbytes));
+
+    constexpr std::size_t chunk_vals = 1U << 16;
+
+    std::vector<real_t> buffer(chunk_vals);
+
+    for (std::size_t offset = 0; offset < nvals;)
+    {
+        std::size_t count = nvals - offset;
+
+        if (count > chunk_vals)
+        {
+            count = chunk_vals;
+        }
+
+        for (std::size_t i = 0; i < count; ++i)
+        {
+            const std::size_t id = offset + i;
+            buffer[i] = a[id] + b[id];
+        }
+
+        encoder.write(buffer.data(), count * sizeof(real_t));
+
+        offset += count;
+    }
+
+    encoder.finish();
+
+    out << '\n';
+}
+
+inline void write_binary_vec3_array(
+    std::ostream &out,
     const real_t *ux,
     const real_t *uy,
     const real_t *uz,
@@ -157,47 +243,60 @@ inline std::string encode_vec3_array_binary(
         static_cast<std::uint64_t>(npts) *
         static_cast<std::uint64_t>(sizeof(real_t));
 
-    std::vector<unsigned char> buffer(
-        sizeof(std::uint64_t) + static_cast<std::size_t>(nbytes));
+    Base64Stream encoder(out);
 
-    std::memcpy(
-        buffer.data(),
-        &nbytes,
-        sizeof(std::uint64_t));
+    encoder.write(&nbytes, sizeof(nbytes));
 
-    real_t *payload =
-        reinterpret_cast<real_t *>(buffer.data() + sizeof(std::uint64_t));
+    constexpr std::size_t chunk_points = 1U << 16;
 
-    for (std::size_t i = 0; i < npts; ++i)
+    std::vector<real_t> buffer(3 * chunk_points);
+
+    for (std::size_t offset = 0; offset < npts;)
     {
-        payload[3 * i + 0] = ux[i];
-        payload[3 * i + 1] = uy[i];
-        payload[3 * i + 2] = uz[i];
+        std::size_t count = npts - offset;
+
+        if (count > chunk_points)
+        {
+            count = chunk_points;
+        }
+
+        for (std::size_t i = 0; i < count; ++i)
+        {
+            const std::size_t src = offset + i;
+
+            buffer[3 * i + 0] = ux[src];
+            buffer[3 * i + 1] = uy[src];
+            buffer[3 * i + 2] = uz[src];
+        }
+
+        encoder.write(buffer.data(), 3 * count * sizeof(real_t));
+
+        offset += count;
     }
 
-    return base64_encode(buffer.data(), buffer.size());
+    encoder.finish();
+
+    out << '\n';
 }
 
 // =======================================================
-// Mid-plane VTI writer
+// Full-domain multicomponent VTI writer
 // =======================================================
 //
-// Writes the x-y plane at z = z_index.
+// Written fields:
 //
-// This version writes the full x-y slice:
-//
-// x = 0, ..., NX - 1
-// y = 0, ..., NY - 1
-//
-// Therefore the output dimensions are NX x NY x 1.
+// rhor
+// rhob
+// rho = rhor + rhob
+// ux
+// uy
+// uz
+// velocity = (ux, uy, uz)
 
-inline void write_midplane_jet_vti(
+inline void write_vti(
     const std::filesystem::path &filename,
-    const real_t *rho,
-    const real_t *ux,
-    const real_t *uy,
-    const real_t *uz,
-    const label_t z_index)
+    const LbmHost &h,
+    const bool write_velocity_components = true)
 {
     if (!filename.parent_path().empty())
     {
@@ -209,187 +308,10 @@ inline void write_midplane_jet_vti(
     if (!out)
     {
         throw std::runtime_error(
-            "Cannot open mid-plane VTI file for writing: " + filename.string());
-    }
-
-    constexpr std::size_t npts =
-        static_cast<std::size_t>(NX) *
-        static_cast<std::size_t>(NY);
-
-    const std::string enc_rho = encode_scalar_array_binary(rho, npts);
-
-    const std::string enc_ux = encode_scalar_array_binary(ux, npts);
-    const std::string enc_uy = encode_scalar_array_binary(uy, npts);
-    const std::string enc_uz = encode_scalar_array_binary(uz, npts);
-
-    const std::string enc_u = encode_vec3_array_binary(ux, uy, uz, npts);
-
-    out << "<?xml version=\"1.0\"?>\n";
-
-    out << "<VTKFile type=\"ImageData\" version=\"1.0\" "
-        << "byte_order=\"LittleEndian\" header_type=\"UInt64\">\n";
-
-    out << "  <ImageData WholeExtent=\"0 " << (NX - 1)
-        << " 0 " << (NY - 1)
-        << " 0 0"
-        << "\" Origin=\"0 0 " << z_index
-        << "\" Spacing=\"1 1 1\">\n";
-
-    out << "    <Piece Extent=\"0 " << (NX - 1)
-        << " 0 " << (NY - 1)
-        << " 0 0\">\n";
-
-    out << "      <PointData Scalars=\"rho\" Vectors=\"velocity\">\n";
-
-    out << "        <DataArray type=\"" << vtk_real_type()
-        << "\" Name=\"rho\" format=\"binary\">\n";
-    out << enc_rho << "\n";
-    out << "        </DataArray>\n";
-
-    out << "        <DataArray type=\"" << vtk_real_type()
-        << "\" Name=\"ux\" format=\"binary\">\n";
-    out << enc_ux << "\n";
-    out << "        </DataArray>\n";
-
-    out << "        <DataArray type=\"" << vtk_real_type()
-        << "\" Name=\"uy\" format=\"binary\">\n";
-    out << enc_uy << "\n";
-    out << "        </DataArray>\n";
-
-    out << "        <DataArray type=\"" << vtk_real_type()
-        << "\" Name=\"uz\" format=\"binary\">\n";
-    out << enc_uz << "\n";
-    out << "        </DataArray>\n";
-
-    out << "        <DataArray type=\"" << vtk_real_type()
-        << "\" Name=\"velocity\" NumberOfComponents=\"3\" format=\"binary\">\n";
-    out << enc_u << "\n";
-    out << "        </DataArray>\n";
-
-    out << "      </PointData>\n";
-    out << "      <CellData>\n";
-    out << "      </CellData>\n";
-    out << "    </Piece>\n";
-    out << "  </ImageData>\n";
-    out << "</VTKFile>\n";
-
-    if (!out)
-    {
-        throw std::runtime_error(
-            "Error while finalizing mid-plane VTI file: " + filename.string());
-    }
-}
-
-// =======================================================
-// Device-to-host mid-plane extraction
-// =======================================================
-//
-// This function copies only the middle z-plane from GPU to CPU
-// and writes one VTI file for the given step.
-//
-// Since idx = x + NX * (y + NY * z), the x-y plane at fixed z
-// is contiguous in memory.
-
-inline void write_midplane_jet_vti_step_device(
-    const int step,
-    const MomentsDevice &d,
-    const std::filesystem::path &out_dir)
-{
-    CUDA_CHECK(cudaDeviceSynchronize());
-
-    constexpr label_t z_mid = NZ / static_cast<label_t>(2);
-
-    constexpr std::size_t slice_cells =
-        static_cast<std::size_t>(NX) *
-        static_cast<std::size_t>(NY);
-
-    std::vector<real_t> rho_slice(slice_cells);
-
-    std::vector<real_t> ux_slice(slice_cells);
-    std::vector<real_t> uy_slice(slice_cells);
-    std::vector<real_t> uz_slice(slice_cells);
-
-    const label_t base_id = idx(
-        static_cast<label_t>(0),
-        static_cast<label_t>(0),
-        z_mid);
-
-    CUDA_CHECK(cudaMemcpy(
-        rho_slice.data(),
-        d.rho + base_id,
-        slice_cells * sizeof(real_t),
-        cudaMemcpyDeviceToHost));
-
-    CUDA_CHECK(cudaMemcpy(
-        ux_slice.data(),
-        d.ux + base_id,
-        slice_cells * sizeof(real_t),
-        cudaMemcpyDeviceToHost));
-
-    CUDA_CHECK(cudaMemcpy(
-        uy_slice.data(),
-        d.uy + base_id,
-        slice_cells * sizeof(real_t),
-        cudaMemcpyDeviceToHost));
-
-    CUDA_CHECK(cudaMemcpy(
-        uz_slice.data(),
-        d.uz + base_id,
-        slice_cells * sizeof(real_t),
-        cudaMemcpyDeviceToHost));
-
-    std::filesystem::create_directories(out_dir);
-
-    std::ostringstream name;
-
-    name << "jet_midplane_"
-         << std::setw(8) << std::setfill('0') << step
-         << ".vti";
-
-    write_midplane_jet_vti(
-        out_dir / name.str(),
-        rho_slice.data(),
-        ux_slice.data(),
-        uy_slice.data(),
-        uz_slice.data(),
-        z_mid);
-}
-
-inline void write_midplane_jet_vti_step_device(
-    const int step,
-    const MomentsDevice &d)
-{
-    write_midplane_jet_vti_step_device(
-        step,
-        d,
-        default_slice_out_dir());
-}
-
-// =======================================================
-// Optional full-domain writer
-// =======================================================
-
-inline void write_full_vti(
-    const std::filesystem::path &filename,
-    const LbmHost &h)
-{
-    if (!filename.parent_path().empty())
-    {
-        std::filesystem::create_directories(filename.parent_path());
-    }
-
-    std::ofstream out(filename, std::ios::binary);
-
-    if (!out)
-    {
-        throw std::runtime_error(
-            "Cannot open full-domain VTI file for writing: " + filename.string());
+            "Cannot open VTI file for writing: " + filename.string());
     }
 
     constexpr std::size_t npts = static_cast<std::size_t>(Ncells);
-
-    const std::string enc_rho = encode_scalar_array_binary(h.rho, npts);
-    const std::string enc_u = encode_vec3_array_binary(h.ux, h.uy, h.uz, npts);
 
     out << "<?xml version=\"1.0\"?>\n";
 
@@ -409,13 +331,41 @@ inline void write_full_vti(
     out << "      <PointData Scalars=\"rho\" Vectors=\"velocity\">\n";
 
     out << "        <DataArray type=\"" << vtk_real_type()
-        << "\" Name=\"rho\" format=\"binary\">\n";
-    out << enc_rho << "\n";
+        << "\" Name=\"rhor\" format=\"binary\">\n";
+    write_binary_scalar_array(out, h.rhor, npts);
     out << "        </DataArray>\n";
 
     out << "        <DataArray type=\"" << vtk_real_type()
+        << "\" Name=\"rhob\" format=\"binary\">\n";
+    write_binary_scalar_array(out, h.rhob, npts);
+    out << "        </DataArray>\n";
+
+    out << "        <DataArray type=\"" << vtk_real_type()
+        << "\" Name=\"rho\" format=\"binary\">\n";
+    write_binary_sum_array(out, h.rhor, h.rhob, npts);
+    out << "        </DataArray>\n";
+
+    if (write_velocity_components)
+    {
+        out << "        <DataArray type=\"" << vtk_real_type()
+            << "\" Name=\"ux\" format=\"binary\">\n";
+        write_binary_scalar_array(out, h.ux, npts);
+        out << "        </DataArray>\n";
+
+        out << "        <DataArray type=\"" << vtk_real_type()
+            << "\" Name=\"uy\" format=\"binary\">\n";
+        write_binary_scalar_array(out, h.uy, npts);
+        out << "        </DataArray>\n";
+
+        out << "        <DataArray type=\"" << vtk_real_type()
+            << "\" Name=\"uz\" format=\"binary\">\n";
+        write_binary_scalar_array(out, h.uz, npts);
+        out << "        </DataArray>\n";
+    }
+
+    out << "        <DataArray type=\"" << vtk_real_type()
         << "\" Name=\"velocity\" NumberOfComponents=\"3\" format=\"binary\">\n";
-    out << enc_u << "\n";
+    write_binary_vec3_array(out, h.ux, h.uy, h.uz, npts);
     out << "        </DataArray>\n";
 
     out << "      </PointData>\n";
@@ -428,29 +378,46 @@ inline void write_full_vti(
     if (!out)
     {
         throw std::runtime_error(
-            "Error while finalizing full-domain VTI file: " + filename.string());
+            "Error while finalizing VTI file: " + filename.string());
     }
 }
 
-inline void write_full_vti_step_device(
+// =======================================================
+// Step filename
+// =======================================================
+
+inline std::filesystem::path vti_filename(
+    const int step,
+    std::filesystem::path folder = default_out_dir())
+{
+    std::ostringstream name;
+
+    name << "bubble_"
+         << std::setw(8) << std::setfill('0') << step
+         << ".vti";
+
+    return folder / name.str();
+}
+
+// =======================================================
+// Device-to-host copy and VTI output
+// =======================================================
+
+inline void write_vti_step_device(
     const int step,
     const MomentsDevice &d,
     LbmHost &h,
-    const std::filesystem::path &out_dir = default_out_dir())
+    std::filesystem::path folder = default_out_dir(),
+    const bool write_velocity_components = true)
 {
     CUDA_CHECK(cudaDeviceSynchronize());
 
     copy_out_D2H(h, d);
 
-    std::filesystem::create_directories(out_dir);
-
-    std::ostringstream name;
-
-    name << "lbm_"
-         << std::setw(8) << std::setfill('0') << step
-         << ".vti";
-
-    write_full_vti(out_dir / name.str(), h);
+    write_vti(
+        vti_filename(step, std::move(folder)),
+        h,
+        write_velocity_components);
 }
 
 #endif

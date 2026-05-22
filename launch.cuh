@@ -8,67 +8,67 @@
 #include "utilities/cudaUtilities.cuh"
 
 // =======================================================
-// Initialization
+// Bubble initialization
 // =======================================================
 
-inline void launch_InitTwoShearLayers(MomentsDevice A, const CudaConfig &cfg)
+inline void launch_InitStaticBubble(MomentsDevice A, const CudaConfig &cfg)
 {
-    InitTwoShearLayers<<<cfg.grid, cfg.block>>>(A);
+    InitStaticBubble<<<cfg.grid, cfg.block>>>(A);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 }
 
-// =======================================================
+//==================================================
 // Jet initialization
 // =======================================================
 
-inline void launch_InitJetBulk(MomentsDevice A, const CudaConfig &cfg)
-{
-    InitJetBulk<<<cfg.grid, cfg.block>>>(A);
+// inline void launch_InitJetBulk(MomentsDevice A, const CudaConfig &cfg)
+// {
+//     InitJetBulk<<<cfg.grid, cfg.block>>>(A);
 
-    CUDA_CHECK(cudaGetLastError());
-    CUDA_CHECK(cudaDeviceSynchronize());
-}
+//     CUDA_CHECK(cudaGetLastError());
+//     CUDA_CHECK(cudaDeviceSynchronize());
+// }
 
-inline void launch_InitJetInlet(MomentsDevice A, const CudaConfig &cfg)
-{
-    InitJetInlet<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(A);
+// inline void launch_InitJetInlet(MomentsDevice A, const CudaConfig &cfg)
+// {
+//     InitJetInlet<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(A);
 
-    CUDA_CHECK(cudaGetLastError());
-    CUDA_CHECK(cudaDeviceSynchronize());
-}
+//     CUDA_CHECK(cudaGetLastError());
+//     CUDA_CHECK(cudaDeviceSynchronize());
+// }
 
-inline void launch_InitJet(MomentsDevice A, const CudaConfig &cfg)
-{
-    launch_InitJetBulk(A, cfg);
-    launch_InitJetInlet(A, cfg);
-}
+// inline void launch_InitJet(MomentsDevice A, const CudaConfig &cfg)
+// {
+//     launch_InitJetBulk(A, cfg);
+//     launch_InitJetInlet(A, cfg);
+// }
 
 // =======================================================
 // Jet boundary conditions
 // =======================================================
 
-inline void launch_InletBC(MomentsDevice A, const CudaConfig &cfg)
-{
-    InletBC<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(A);
+// inline void launch_InletBC(MomentsDevice A, const CudaConfig &cfg)
+// {
+//     InletBC<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(A);
 
-    CUDA_CHECK(cudaGetLastError());
-}
+//     CUDA_CHECK(cudaGetLastError());
+// }
 
-inline void launch_OutletNeumannBC(MomentsDevice A, const CudaConfig &cfg)
-{
-    OutletNeumannBC<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(A);
+// inline void launch_OutletNeumannBC(MomentsDevice A, const CudaConfig &cfg)
+// {
+//     OutletNeumannBC<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(A);
 
-    CUDA_CHECK(cudaGetLastError());
-}
+//     CUDA_CHECK(cudaGetLastError());
+// }
 
-inline void launch_JetBoundaryConditions(MomentsDevice A, const CudaConfig &cfg)
-{
-    JetBoundaryConditions<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(A);
+// inline void launch_JetBoundaryConditions(MomentsDevice A, const CudaConfig &cfg)
+// {
+//     JetBoundaryConditions<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(A);
 
-    CUDA_CHECK(cudaGetLastError());
-}
+//     CUDA_CHECK(cudaGetLastError());
+// }
 
 // =======================================================
 // Main RCS step

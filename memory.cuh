@@ -13,7 +13,8 @@
 
 struct MomentsDevice
 {
-    real_t *__restrict__ rho = nullptr;
+    real_t *__restrict__ rhor = nullptr;
+    real_t *__restrict__ rhob = nullptr;
 
     real_t *__restrict__ ux = nullptr;
     real_t *__restrict__ uy = nullptr;
@@ -43,7 +44,8 @@ struct LbmDevice
 
 struct LbmHost
 {
-    real_t *rho = nullptr;
+    real_t *rhor = nullptr;
+    real_t *rhob = nullptr;
 
     real_t *ux = nullptr;
     real_t *uy = nullptr;
@@ -63,7 +65,8 @@ inline void allocate_device(MomentsDevice &d)
         return ptr;
     };
 
-    d.rho = allocate_array();
+    d.rhor = allocate_array();
+    d.rhob = allocate_array();
 
     d.ux = allocate_array();
     d.uy = allocate_array();
@@ -79,7 +82,8 @@ inline void allocate_device(MomentsDevice &d)
 
 inline void zero_device(const MomentsDevice &d)
 {
-    CUDA_CHECK(cudaMemset(d.rho, 0, bytesCell));
+    CUDA_CHECK(cudaMemset(d.rhor, 0, bytesCell));
+    CUDA_CHECK(cudaMemset(d.rhob, 0, bytesCell));
 
     CUDA_CHECK(cudaMemset(d.ux, 0, bytesCell));
     CUDA_CHECK(cudaMemset(d.uy, 0, bytesCell));
@@ -95,8 +99,11 @@ inline void zero_device(const MomentsDevice &d)
 
 inline void free_device(MomentsDevice &d)
 {
-    if (d.rho)
-        CUDA_CHECK(cudaFree(d.rho));
+    if (d.rhor)
+        CUDA_CHECK(cudaFree(d.rhor));
+
+    if (d.rhob)
+        CUDA_CHECK(cudaFree(d.rhob));
 
     if (d.ux)
         CUDA_CHECK(cudaFree(d.ux));
@@ -129,7 +136,8 @@ inline LbmHost allocate_host_memory()
 {
     LbmHost h{};
 
-    CUDA_CHECK(cudaMallocHost(reinterpret_cast<void **>(&h.rho), bytesCell));
+    CUDA_CHECK(cudaMallocHost(reinterpret_cast<void **>(&h.rhor), bytesCell));
+    CUDA_CHECK(cudaMallocHost(reinterpret_cast<void **>(&h.rhob), bytesCell));
 
     CUDA_CHECK(cudaMallocHost(reinterpret_cast<void **>(&h.ux), bytesCell));
     CUDA_CHECK(cudaMallocHost(reinterpret_cast<void **>(&h.uy), bytesCell));
@@ -161,8 +169,11 @@ inline LbmDevice allocate_device_memory()
 
 inline void free_host_memory(LbmHost &h)
 {
-    if (h.rho)
-        CUDA_CHECK(cudaFreeHost(h.rho));
+    if (h.rhor)
+        CUDA_CHECK(cudaFreeHost(h.rhor));
+
+    if (h.rhob)
+        CUDA_CHECK(cudaFreeHost(h.rhob));
 
     if (h.ux)
         CUDA_CHECK(cudaFreeHost(h.ux));
@@ -197,7 +208,8 @@ inline void swap_moments(MomentsDevice &A, MomentsDevice &B) noexcept
 
 inline void copy_out_D2H(LbmHost &h, const MomentsDevice &d)
 {
-    CUDA_CHECK(cudaMemcpy(h.rho, d.rho, bytesCell, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(h.rhor, d.rhor, bytesCell, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(h.rhob, d.rhob, bytesCell, cudaMemcpyDeviceToHost));
 
     CUDA_CHECK(cudaMemcpy(h.ux, d.ux, bytesCell, cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaMemcpy(h.uy, d.uy, bytesCell, cudaMemcpyDeviceToHost));
