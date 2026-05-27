@@ -31,80 +31,54 @@ __global__ void InitStaticBubble(MomentsDevice A)
     init_static_bubble(A, x, y, z);
 }
 
-// // =======================================================
-// // JET initialization
-// // =======================================================
+// =======================================================
+// JET initialization
+// =======================================================
 
-// __global__ void InitJetBulk(MomentsDevice A)
-// {
-//     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
-//     const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
-//     const label_t z = threadIdx.z + blockIdx.z * blockDim.z;
+__global__ void InitJetBulk(MomentsDevice A)
+{
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
+    const label_t z = threadIdx.z + blockIdx.z * blockDim.z;
 
-//     if (interior(x, y, z))
-//     {
-//         return;
-//     }
+    if (x >= NX || y >= NY || z >= NZ)
+    {
+        return;
+    }
 
-//     init_jet_bulk(A, x, y, z);
-// }
+    init_jet_bulk(A, x, y, z);
+}
 
-// __global__ void InitJetInlet(MomentsDevice A)
-// {
-//     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
-//     const label_t z = threadIdx.y + blockIdx.y * blockDim.y;
+__global__ void InitJetInlet(MomentsDevice A)
+{
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t z = threadIdx.y + blockIdx.y * blockDim.y;
 
-//     if (inlet_outlet_interior(x, z))
-//     {
-//         return;
-//     }
+    if (inlet_outlet_interior(x, z))
+    {
+        return;
+    }
 
-//     init_jet_inlet(A, x, z);
-// }
+    init_jet_inlet(A, x, z);
+}
 
 // // =======================================================
 // // Jet boundary conditions
 // // =======================================================
 
-// __global__ void InletBC(MomentsDevice A)
-// {
-//     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
-//     const label_t z = threadIdx.y + blockIdx.y * blockDim.y;
+__global__ void JetBoundaryConditions(MomentsDevice A, const MomentsDevice Aold)
+{
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t z = threadIdx.y + blockIdx.y * blockDim.y;
 
-//     if (inlet_outlet_interior(x, z))
-//     {
-//         return;
-//     }
+    if (inlet_outlet_interior(x, z))
+    {
+        return;
+    }
 
-//     inlet_bc_calculation(A, x, z);
-// }
-
-// __global__ void OutletNeumannBC(MomentsDevice A)
-// {
-//     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
-//     const label_t z = threadIdx.y + blockIdx.y * blockDim.y;
-
-//     if (inlet_outlet_interior(x, z))
-//     {
-//         return;
-//     }
-
-//     outlet_neumann_bc_calculation(A, x, z);
-// }
-
-// __global__ void JetBoundaryConditions(MomentsDevice A)
-// {
-//     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
-//     const label_t z = threadIdx.y + blockIdx.y * blockDim.y;
-
-//     if (inlet_outlet_interior(x, z))
-//     {
-//         return;
-//     }
-
-//     inlet_bc_calculation(A, x, z);
-//     outlet_neumann_bc_calculation(A, x, z);
-// }
+    inlet_bc_calculation(A, x, z);
+    outlet_neumann_bc_calculation(A, Aold, x, z);
+}
 
 // =======================================================
 // Main RCS kernel

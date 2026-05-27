@@ -9,19 +9,19 @@
 
 __global__ void InitStaticBubble(MomentsDevice A);
 
-// __global__ void InitJetBulk(MomentsDevice A);
+__global__ void InitJetBulk(MomentsDevice A);
 
-// __global__ void InitJetInlet(MomentsDevice A);
+__global__ void InitJetInlet(MomentsDevice A);
 
 // =======================================================
-// Main kernels RCS and BCs
+// Boundary-condition kernels
 // =======================================================
 
-// __global__ void InletBC(MomentsDevice A);
+__global__ void JetBoundaryConditions(MomentsDevice A, const MomentsDevice Aold);
 
-// __global__ void OutletNeumannBC(MomentsDevice A);
-
-// __global__ void JetBoundaryConditions(MomentsDevice A);
+// =======================================================
+// Main RCS kernel
+// =======================================================
 
 __global__ void RCSKernel(const MomentsDevice A, MomentsDevice B);
 

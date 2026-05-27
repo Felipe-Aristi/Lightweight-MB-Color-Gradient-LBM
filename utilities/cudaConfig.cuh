@@ -17,7 +17,7 @@
 #endif
 
 #ifndef LBM_BLOCK_Z
-#define LBM_BLOCK_Z 2
+#define LBM_BLOCK_Z 4
 #endif
 
 __host__ __device__ __forceinline__ int ceil_div(size_t a, size_t b)

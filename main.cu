@@ -22,11 +22,13 @@ int main()
     LbmDevice d = allocate_device_memory();
     LbmHost h = allocate_host_memory();
 
-    // launch_InitTwoShearLayers(d.A, cfg);
-    // launch_InitJet(d.A, cfg);
-    launch_InitStaticBubble(d.A, cfg);
+    launch_InitJet(d.A, cfg);
+    launch_JetBoundaryConditions(d.A, d.A, cfg);
+
+    // launch_InitStaticBubble(d.A, cfg);
 
     MlupsCounter mlups = make_mlups_counter();
+
     mlups_start(mlups);
 
     {
@@ -37,9 +39,9 @@ int main()
 
     for (int step = 1; step < NSTEP; ++step)
     {
-        // launch_JetBoundaryConditions(d.A, cfg);
-
         launch_RCS(d.A, d.B, cfg);
+
+        launch_JetBoundaryConditions(d.B, d.A, cfg);
 
         swap_moments(d.A, d.B);
 

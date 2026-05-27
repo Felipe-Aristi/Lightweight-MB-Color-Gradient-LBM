@@ -14,10 +14,10 @@ EXE=lbm_solver
 # RTX 3050 laptop: SM=86
 # RTX 4090:        SM=89
 
-SM=86
+SM=89
 LBM_BLOCK_X=${LBM_BLOCK_X:-32}
 LBM_BLOCK_Y=${LBM_BLOCK_Y:-4}
-LBM_BLOCK_Z=${LBM_BLOCK_Z:-4}
+LBM_BLOCK_Z=${LBM_BLOCK_Z:-2}
 
 # =======================================================
 # Source files

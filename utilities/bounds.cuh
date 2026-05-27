@@ -75,24 +75,6 @@ __host__ __device__ [[nodiscard]] constexpr inline label_t wrapz(const label_t z
     return z;
 }
 
-// =======================================================
-// coordinates from linear index
-// =======================================================
-
-__host__ __device__ inline void coordinates(const label_t id,
-                                            label_t &x,
-                                            label_t &y,
-                                            label_t &z) noexcept
-{
-    constexpr label_t NXY = NX * NY;
-
-    z = id / NXY;
-
-    const label_t rem = id - z * NXY;
-
-    y = rem / NX;
-    x = rem - y * NX;
-}
 
 // =======================================================
 // Pull index
@@ -130,6 +112,11 @@ __device__ [[nodiscard]] __forceinline__ label_t pullid(const label_t x,
         pullz<I>(z));
 }
 
+// =======================================================
+// Pull cases
+// =======================================================
+
+
 template <label_t I>
 __device__ [[nodiscard]] __forceinline__ label_t pullidPeri(const label_t x,
                                                             const label_t y,
@@ -142,5 +129,19 @@ __device__ [[nodiscard]] __forceinline__ label_t pullidPeri(const label_t x,
 
     // wrapy(pully<I>(y)) ,  pully<I>(y)
 }
+
+template <label_t I>
+__device__ [[nodiscard]] __forceinline__ label_t pullidJet(const label_t x,
+                                                            const label_t y,
+                                                            const label_t z) noexcept
+{
+    return idx(
+        wrapx(pullx<I>(x)),
+        pully<I>(y),
+        wrapz(pullz<I>(z)));
+
+}
+
+
 
 #endif

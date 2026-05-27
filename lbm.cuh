@@ -70,7 +70,19 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
 
             // Pull treaming -->  f_i(x,t+dt) = f_i^post(x - c_i,t)
 
-            const label_t src = pullidPeri<i>(x, y, z);
+            // Bubble casa
+            //const label_t src = pullidPeri<i>(x, y, z);
+
+            // Jet case
+            const label_t ys = pully<i>(y);
+
+            const label_t src = idx(
+                wrapx(pullx<i>(x)),
+                ys,
+                wrapz(pullz<i>(z)));
+
+            const bool src_is_y_ghost =
+                (ys == static_cast<label_t>(0) || ys == NY - static_cast<label_t>(1));
 
             // Read moments from A at the source cell
             const real_t rhor_s = rhor[src];
@@ -106,7 +118,7 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
 
             real_t Deltai = static_cast<real_t>(0);
 
-            if (interface_indicator > static_cast<real_t>(1.0e-4))
+            if (interface_indicator > static_cast<real_t>(1.0e-4) && !src_is_y_ghost)
             {
                 real_t Fx;
                 real_t Fy;
