@@ -39,6 +39,7 @@ int main()
 
     for (int step = 1; step < NSTEP; ++step)
     {
+
         launch_RCS(d.A, d.B, cfg);
 
         launch_JetBoundaryConditions(d.B, d.A, cfg);

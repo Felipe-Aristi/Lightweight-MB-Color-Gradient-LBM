@@ -19,6 +19,20 @@ __device__ __forceinline__ real_t psi(const real_t rho_self, const real_t rho_ot
 }
 
 // =======================================================
+// Force calculation at the outlet with limited y index to prevent out-of-bounds access
+// =======================================================
+
+__device__ __forceinline__ label_t force_y_outlet_limited(const int y) noexcept
+{
+    if (y >= static_cast<int>(NY - static_cast<label_t>(1)))
+    {
+        return NY - static_cast<label_t>(2);
+    }
+
+    return static_cast<label_t>(y);
+}
+
+// =======================================================
 // Jet mask
 // =======================================================
 

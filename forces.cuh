@@ -8,6 +8,7 @@
 #include "stencil_ct.cuh"
 
 #include "utilities/indexing.cuh"
+#include "utilities/bounds.cuh"
 #include "utilities/types.cuh"
 #include "utilities/mathUtilities.cuh"
 #include "utilities/constexprFor.cuh"
@@ -16,8 +17,9 @@
 // Color-gradient / force calculation   F = grad(psi)
 // =======================================================
 
-__device__ __forceinline__ void force(const real_t __restrict__ *rho_self, const real_t __restrict__ *rho_other, const label_t id,
-                                      real_t &Fx_component, real_t &Fy_component, real_t &Fz_component) noexcept
+__device__ __forceinline__ void force_outlet_limited(const real_t *__restrict__ rho_self, const real_t *__restrict__ rho_other,
+                                                     const label_t x, const label_t y, const label_t z,
+                                                     real_t &Fx_component, real_t &Fy_component, real_t &Fz_component) noexcept
 {
     real_t sx = static_cast<real_t>(0);
     real_t sy = static_cast<real_t>(0);
@@ -28,14 +30,21 @@ __device__ __forceinline__ void force(const real_t __restrict__ *rho_self, const
         {
             constexpr label_t i = decltype(I)::value;
 
-            constexpr real_t cx = static_cast<real_t>(D3Q27::cx<i>());
-            constexpr real_t cy = static_cast<real_t>(D3Q27::cy<i>());
-            constexpr real_t cz = static_cast<real_t>(D3Q27::cz<i>());
+            constexpr int cx_i = D3Q27::cx<i>();
+            constexpr int cy_i = D3Q27::cy<i>();
+            constexpr int cz_i = D3Q27::cz<i>();
+
+            constexpr real_t cx = static_cast<real_t>(cx_i);
+            constexpr real_t cy = static_cast<real_t>(cy_i);
+            constexpr real_t cz = static_cast<real_t>(cz_i);
 
             constexpr real_t wi = D3Q27::w<i>();
 
-            const label_t idn_int = static_cast<int>(id) + D3Q27::offset<i>();
-            const label_t idn = static_cast<label_t>(idn_int);
+            const label_t xn = wrapx(static_cast<label_t>(static_cast<int>(x) + cx_i));
+            const label_t yn = force_y_outlet_limited(static_cast<int>(y) + cy_i);
+            const label_t zn = wrapz(static_cast<label_t>(static_cast<int>(z) + cz_i));
+
+            const label_t idn = idx(xn, yn, zn);
 
             const real_t psi_n = psi(rho_self[idn], rho_other[idn]);
 
@@ -111,16 +120,14 @@ __device__ __forceinline__ real_t A_calculation(const real_t tau_eff) noexcept
 // =======================================================
 // const real_t tau_self0, const real_t tau_other0,
 
-__device__ __forceinline__ void preOmega2(const real_t __restrict__ *rho_self,
-                                          const real_t __restrict__ *rho_other,
-                                          const label_t id,
-                                          real_t &Fx, real_t &Fy, real_t &Fz,
-                                          real_t &absF, real_t &A) noexcept
+__device__ __forceinline__ void preOmega2_outlet_limited(const real_t *__restrict__ rho_self,
+                                                         const real_t *__restrict__ rho_other,
+                                                         const label_t x, const label_t y, const label_t z,
+                                                         real_t &Fx, real_t &Fy, real_t &Fz,
+                                                         real_t &absF, real_t &A) noexcept
 {
+    force_outlet_limited(rho_self, rho_other, x, y, z, Fx, Fy, Fz);
 
-    force(rho_self, rho_other, id, Fx, Fy, Fz);
-
-    // const real_t tau_eff = tau_interface(rho_self[id], tau_self0, rho_other[id], tau_other0);
     const real_t tau_eff = taub;
 
     A = A_calculation(tau_eff);

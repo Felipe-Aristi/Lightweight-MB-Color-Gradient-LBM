@@ -87,4 +87,8 @@ __device__ __forceinline__ real_t fpost(const real_t rho,
     return feq<I>(rho, ux, uy, uz) + oms * fneqr<I>(Pixx, Pixy, Piyy, Piyz, Pizz, Pixz, ux, uy, uz);
 }
 
+// ===================================================
+// Guo forcing term calculation
+// ===================================================
+
 #endif

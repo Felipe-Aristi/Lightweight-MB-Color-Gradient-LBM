@@ -70,19 +70,92 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
 
             // Pull treaming -->  f_i(x,t+dt) = f_i^post(x - c_i,t)
 
-            // Bubble casa
+            // Bubble case
             //const label_t src = pullidPeri<i>(x, y, z);
 
             // Jet case
+            const label_t xs = wrapx(pullx<i>(x));
             const label_t ys = pully<i>(y);
+            const label_t zs = wrapz(pullz<i>(z));
 
-            const label_t src = idx(
-                wrapx(pullx<i>(x)),
-                ys,
-                wrapz(pullz<i>(z)));
+            const label_t src = idx(xs, ys, zs);
 
-            const bool src_is_y_ghost =
-                (ys == static_cast<label_t>(0) || ys == NY - static_cast<label_t>(1));
+            const bool src_is_inlet_ghost = (ys == static_cast<label_t>(0));
+            const bool src_is_outlet_ghost = (ys == NY - static_cast<label_t>(1));
+            const bool src_is_y_ghost = src_is_inlet_ghost || src_is_outlet_ghost;
+
+            if (src_is_y_ghost)
+            {
+                const label_t yF =src_is_inlet_ghost
+                        ? static_cast<label_t>(1)
+                        : NY - static_cast<label_t>(2);
+
+                const label_t idF = idx(xs, yF, zs);
+
+                const real_t rrB = rhor[src];
+                const real_t rbB = rhob[src];
+
+                const real_t rhoB = rrB + rbB;
+                const real_t inv_rhoB = static_cast<real_t>(1) / rhoB;
+
+                const real_t aR = rrB * inv_rhoB;
+                const real_t aB = rbB * inv_rhoB;
+
+                // Boundary velocity for the equilibrium part.
+                const real_t uxB = ux[src];
+                const real_t uyB = uy[src];
+                const real_t uzB = uz[src];
+
+                // Fluid non-equilibrium tensor and fluid velocity.
+                const real_t PixxF = Pixx[idF];
+                const real_t PixyF = Pixy[idF];
+                const real_t PiyyF = Piyy[idF];
+                const real_t PiyzF = Piyz[idF];
+                const real_t PizzF = Pizz[idF];
+                const real_t PixzF = Pixz[idF];
+
+                const real_t uxF = ux[idF];
+                const real_t uyF = uy[idF];
+                const real_t uzF = uz[idF];
+
+                const real_t gieq = feq<i>(rhoB, uxB, uyB, uzB);
+
+                const real_t gineqr = fneqr<i>(PixxF, PixyF, PiyyF, PiyzF, PizzF, PixzF,uxF, uyF, uzF);
+
+                const real_t gi = gieq + oms * gineqr;
+
+                const real_t fr_i = aR * gi;
+                const real_t fb_i = aB * gi;
+
+                sumr += fr_i;
+                sumb += fb_i;
+
+                const real_t g_i = fr_i + fb_i;
+
+                constexpr real_t cx = static_cast<real_t>(D3Q27::cx<i>());
+                constexpr real_t cy = static_cast<real_t>(D3Q27::cy<i>());
+                constexpr real_t cz = static_cast<real_t>(D3Q27::cz<i>());
+
+                jx += g_i * cx;
+                jy += g_i * cy;
+                jz += g_i * cz;
+
+                constexpr real_t Hxx = D3Q27::Hxx<i>();
+                constexpr real_t Hxy = D3Q27::Hxy<i>();
+                constexpr real_t Hyy = D3Q27::Hyy<i>();
+                constexpr real_t Hyz = D3Q27::Hyz<i>();
+                constexpr real_t Hzz = D3Q27::Hzz<i>();
+                constexpr real_t Hxz = D3Q27::Hxz<i>();
+
+                Axx += g_i * Hxx;
+                Axy += g_i * Hxy;
+                Ayy += g_i * Hyy;
+                Ayz += g_i * Hyz;
+                Azz += g_i * Hzz;
+                Axz += g_i * Hxz;
+
+                return;
+            }
 
             // Read moments from A at the source cell
             const real_t rhor_s = rhor[src];
@@ -118,7 +191,7 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
 
             real_t Deltai = static_cast<real_t>(0);
 
-            if (interface_indicator > static_cast<real_t>(1.0e-4) && !src_is_y_ghost)
+            if (interface_indicator > static_cast<real_t>(1.0e-4) )
             {
                 real_t Fx;
                 real_t Fy;
@@ -127,7 +200,7 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
                 real_t absF;
                 real_t Acoef;
 
-                preOmega2(rhor, rhob, src, Fx, Fy, Fz, absF, Acoef);
+                preOmega2_outlet_limited(rhor, rhob, xs, ys, zs, Fx, Fy, Fz, absF, Acoef);
 
                 // Second collision operator
                 gi += Omega2<i>(Fx,Fy,Fz,absF, Acoef);

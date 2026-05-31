@@ -17,7 +17,7 @@ __global__ void InitJetInlet(MomentsDevice A);
 // Boundary-condition kernels
 // =======================================================
 
-__global__ void JetBoundaryConditions(MomentsDevice A, const MomentsDevice Aold);
+__global__ void JetBoundaryConditions(MomentsDevice B, const MomentsDevice Aold);
 
 // =======================================================
 // Main RCS kernel

@@ -49,11 +49,9 @@ inline void launch_InitJet(MomentsDevice A, const CudaConfig &cfg)
 // Jet boundary conditions
 // =======================================================
 
-inline void launch_JetBoundaryConditions(MomentsDevice A,
-                                         const MomentsDevice Aold,
-                                         const CudaConfig &cfg)
+inline void launch_JetBoundaryConditions(MomentsDevice B, const MomentsDevice Aold, const CudaConfig &cfg)
 {
-    JetBoundaryConditions<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(A, Aold);
+    JetBoundaryConditions<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(B, Aold);
 
     CUDA_CHECK(cudaGetLastError());
 }

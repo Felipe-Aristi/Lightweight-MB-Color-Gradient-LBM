@@ -66,7 +66,7 @@ __global__ void InitJetInlet(MomentsDevice A)
 // // Jet boundary conditions
 // // =======================================================
 
-__global__ void JetBoundaryConditions(MomentsDevice A, const MomentsDevice Aold)
+__global__ void JetBoundaryConditions(MomentsDevice B, const MomentsDevice Aold)
 {
     const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
     const label_t z = threadIdx.y + blockIdx.y * blockDim.y;
@@ -76,10 +76,9 @@ __global__ void JetBoundaryConditions(MomentsDevice A, const MomentsDevice Aold)
         return;
     }
 
-    inlet_bc_calculation(A, x, z);
-    outlet_neumann_bc_calculation(A, Aold, x, z);
+    inlet_bc_calculation(B, x, z);
+    outlet_neumann_bc_calculation(B, Aold, x, z);
 }
-
 // =======================================================
 // Main RCS kernel
 // =======================================================
