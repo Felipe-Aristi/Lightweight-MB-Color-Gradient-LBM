@@ -191,7 +191,7 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
 
             real_t Deltai = static_cast<real_t>(0);
 
-            if (interface_indicator > static_cast<real_t>(1.0e-4) )
+            if (interface_indicator > static_cast<real_t>(1.0e-4))
             {
                 real_t Fx;
                 real_t Fy;

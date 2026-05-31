@@ -37,6 +37,14 @@ inline constexpr real_t bubble_y0 = static_cast<real_t>(NY - 1) / static_cast<re
 inline constexpr real_t bubble_z0 = static_cast<real_t>(NZ - 1) / static_cast<real_t>(2);
 inline constexpr real_t pi = static_cast<real_t>(3.141592653589793);
 
+// Rayleigh Taylor Instability parameters
+inline constexpr real_t rti_y0 = static_cast<real_t>(NY - 1) / static_cast<real_t>(2);
+inline constexpr real_t rti_amplitude = static_cast<real_t>(4.0);
+inline constexpr real_t gravity = static_cast<real_t>(1.0e-6);
+inline constexpr real_t rti_interface_width = static_cast<real_t>(4.0);
+inline constexpr int rti_mode_x = 1;
+inline constexpr int rti_mode_z = 1;
+
 // Statistics
 inline constexpr real_t stats_start_tstar = static_cast<real_t>(7000.0);
 
@@ -46,10 +54,15 @@ inline constexpr real_t cs4 = cs2 * cs2;
 inline constexpr real_t cs6 = cs4 * cs2;
 
 inline constexpr real_t inv_cs2 = static_cast<real_t>(1) / cs2;
+inline constexpr real_t inv_cs4 = static_cast<real_t>(1) / cs4;
+inline constexpr real_t inv_cs6 = static_cast<real_t>(1) / cs6;
+
 inline constexpr real_t inv_2cs2 = static_cast<real_t>(1) / (static_cast<real_t>(2) * cs2);
 inline constexpr real_t inv_2cs4 = static_cast<real_t>(1) / (static_cast<real_t>(2) * cs4);
 inline constexpr real_t inv_6cs6 = static_cast<real_t>(1.0) / (static_cast<real_t>(6.0) * cs6);
 inline constexpr real_t inv_2cs6 = static_cast<real_t>(1.0) / (static_cast<real_t>(2.0) * cs6);
+
+inline constexpr real_t half = static_cast<real_t>(0.5);
 
 // FLuid parameters
 inline constexpr real_t rhor0 = static_cast<real_t>(1);

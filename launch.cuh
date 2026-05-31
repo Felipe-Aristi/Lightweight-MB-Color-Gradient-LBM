@@ -19,6 +19,32 @@ inline void launch_InitStaticBubble(MomentsDevice A, const CudaConfig &cfg)
     CUDA_CHECK(cudaDeviceSynchronize());
 }
 
+// =======================================================
+// RTI initialization
+// =======================================================
+
+inline void launch_InitRTIDomain(MomentsDevice A, const CudaConfig &cfg)
+{
+    InitRTIDomain<<<cfg.grid, cfg.block>>>(A);
+
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+}
+
+inline void launch_InitRTIWalls(MomentsDevice A, const CudaConfig &cfg)
+{
+    InitRTIWalls<<<grid2D_xz(cfg), block2D_xz(cfg)>>>(A);
+
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+}
+
+inline void launch_InitRTI(MomentsDevice A, const CudaConfig &cfg)
+{
+    launch_InitRTIDomain(A, cfg);
+    launch_InitRTIWalls(A, cfg);
+}
+
 //==================================================
 // Jet initialization
 // =======================================================

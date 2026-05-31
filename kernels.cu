@@ -10,6 +10,8 @@
 
 #include "bubble/bubbleIn.cuh"
 
+#include "rti/rtiIn.cuh"
+
 #include "jet/jetIn.cuh"
 #include "jet/boundary_conditions.cuh"
 
@@ -29,6 +31,37 @@ __global__ void InitStaticBubble(MomentsDevice A)
     }
 
     init_static_bubble(A, x, y, z);
+}
+
+// =======================================================
+// RTI initialization
+// =======================================================
+
+__global__ void InitRTIDomain(MomentsDevice A)
+{
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t y = threadIdx.y + blockIdx.y * blockDim.y;
+    const label_t z = threadIdx.z + blockIdx.z * blockDim.z;
+
+    if (x >= NX || y >= NY || z >= NZ)
+    {
+        return;
+    }
+
+    init_rti_domain(A, x, y, z);
+}
+
+__global__ void InitRTIWalls(MomentsDevice A)
+{
+    const label_t x = threadIdx.x + blockIdx.x * blockDim.x;
+    const label_t z = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if (inlet_outlet_interior(x, z))
+    {
+        return;
+    }
+
+    init_rti_y_walls(A, x, z);
 }
 
 // =======================================================

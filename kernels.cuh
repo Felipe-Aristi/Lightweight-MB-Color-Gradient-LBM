@@ -9,6 +9,10 @@
 
 __global__ void InitStaticBubble(MomentsDevice A);
 
+__global__ void InitRTIDomain(MomentsDevice A);
+
+__global__ void InitRTIWalls(MomentsDevice A);
+
 __global__ void InitJetBulk(MomentsDevice A);
 
 __global__ void InitJetInlet(MomentsDevice A);
