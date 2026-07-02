@@ -18,8 +18,8 @@ __device__ __forceinline__ real_t Omega2(const real_t Fx, const real_t Fy, const
 {
     const real_t cos2rule_i = cos2rule<I>(Fx, Fy, Fz, absF);
 
-    constexpr real_t wi = D3Q27::w<I>();
-    constexpr real_t Bi = D3Q27::B<I>();
+    constexpr real_t wi = LbmStencil::w<I>();
+    constexpr real_t Bi = LbmStencil::B<I>();
 
     return static_cast<real_t>(0.5) * A * absF * (wi * cos2rule_i - Bi);
 }
@@ -41,11 +41,11 @@ __device__ __forceinline__ real_t cosphi(const real_t Fx, const real_t Fy, const
         return static_cast<real_t>(0);
     }
 
-    constexpr real_t cx = static_cast<real_t>(D3Q27::cx<I>());
-    constexpr real_t cy = static_cast<real_t>(D3Q27::cy<I>());
-    constexpr real_t cz = static_cast<real_t>(D3Q27::cz<I>());
+    constexpr real_t cx = static_cast<real_t>(LbmStencil::cx<I>());
+    constexpr real_t cy = static_cast<real_t>(LbmStencil::cy<I>());
+    constexpr real_t cz = static_cast<real_t>(LbmStencil::cz<I>());
 
-    constexpr real_t inv_cnorm = D3Q27::invcnorm<I>();
+    constexpr real_t inv_cnorm = LbmStencil::invcnorm<I>();
 
     const real_t dot = Fx * cx + Fy * cy + Fz * cz;
 
@@ -68,7 +68,7 @@ __device__ __forceinline__ real_t recolorDelta(const real_t rhor, const real_t r
     }
 
     const real_t rho = rhor + rhob;
-    constexpr real_t wi = D3Q27::w<I>();
+    constexpr real_t wi = LbmStencil::w<I>();
 
     const real_t cos_i = cosphi<I>(Fx, Fy, Fz, absF);
 

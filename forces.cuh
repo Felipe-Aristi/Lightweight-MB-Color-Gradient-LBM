@@ -30,19 +30,20 @@ __device__ __forceinline__ void force_outlet_limited(const real_t *__restrict__ 
         {
             constexpr label_t i = decltype(I)::value;
 
-            constexpr int cx_i = D3Q27::cx<i>();
-            constexpr int cy_i = D3Q27::cy<i>();
-            constexpr int cz_i = D3Q27::cz<i>();
+            constexpr int cx_i = LbmStencil::cx<i>();
+            constexpr int cy_i = LbmStencil::cy<i>();
+            constexpr int cz_i = LbmStencil::cz<i>();
 
             constexpr real_t cx = static_cast<real_t>(cx_i);
             constexpr real_t cy = static_cast<real_t>(cy_i);
             constexpr real_t cz = static_cast<real_t>(cz_i);
 
-            constexpr real_t wi = D3Q27::w<i>();
+            constexpr real_t wi = LbmStencil::w<i>();
 
             const label_t xn = wrapx(static_cast<label_t>(static_cast<int>(x) + cx_i));
-            const label_t yn = force_y_outlet_limited(static_cast<int>(y) + cy_i);
             const label_t zn = wrapz(static_cast<label_t>(static_cast<int>(z) + cz_i));
+
+            const label_t yn = force_y_outlet_limited(static_cast<int>(y) + cy_i);
 
             const label_t idn = idx(xn, yn, zn);
 
@@ -84,9 +85,9 @@ __device__ __forceinline__ real_t cos2rule(const real_t Fx, const real_t Fy, con
         return static_cast<real_t>(0);
     }
 
-    constexpr real_t cx = static_cast<real_t>(D3Q27::cx<I>());
-    constexpr real_t cy = static_cast<real_t>(D3Q27::cy<I>());
-    constexpr real_t cz = static_cast<real_t>(D3Q27::cz<I>());
+    constexpr real_t cx = static_cast<real_t>(LbmStencil::cx<I>());
+    constexpr real_t cy = static_cast<real_t>(LbmStencil::cy<I>());
+    constexpr real_t cz = static_cast<real_t>(LbmStencil::cz<I>());
 
     const real_t Fici = Fx * cx + Fy * cy + Fz * cz;
 

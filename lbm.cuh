@@ -70,14 +70,10 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
 
             // Pull treaming -->  f_i(x,t+dt) = f_i^post(x - c_i,t)
 
-            // Bubble case
-            //const label_t src = pullidPeri<i>(x, y, z);
-
-            // Jet case
+            // Jet case: periodic in x/z, inlet/outlet boundaries in y.
             const label_t xs = wrapx(pullx<i>(x));
             const label_t ys = pully<i>(y);
             const label_t zs = wrapz(pullz<i>(z));
-
             const label_t src = idx(xs, ys, zs);
 
             const bool src_is_inlet_ghost = (ys == static_cast<label_t>(0));
@@ -86,9 +82,9 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
 
             if (src_is_y_ghost)
             {
-                const label_t yF =src_is_inlet_ghost
-                        ? static_cast<label_t>(1)
-                        : NY - static_cast<label_t>(2);
+                const label_t yF = src_is_inlet_ghost
+                                       ? static_cast<label_t>(1)
+                                       : NY - static_cast<label_t>(2);
 
                 const label_t idF = idx(xs, yF, zs);
 
@@ -101,12 +97,10 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
                 const real_t aR = rrB * inv_rhoB;
                 const real_t aB = rbB * inv_rhoB;
 
-                // Boundary velocity for the equilibrium part.
                 const real_t uxB = ux[src];
                 const real_t uyB = uy[src];
                 const real_t uzB = uz[src];
 
-                // Fluid non-equilibrium tensor and fluid velocity.
                 const real_t PixxF = Pixx[idF];
                 const real_t PixyF = Pixy[idF];
                 const real_t PiyyF = Piyy[idF];
@@ -119,8 +113,7 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
                 const real_t uzF = uz[idF];
 
                 const real_t gieq = feq<i>(rhoB, uxB, uyB, uzB);
-
-                const real_t gineqr = fneqr<i>(PixxF, PixyF, PiyyF, PiyzF, PizzF, PixzF,uxF, uyF, uzF);
+                const real_t gineqr = fneqr<i>(PixxF, PixyF, PiyyF, PiyzF, PizzF, PixzF, uxF, uyF, uzF);
 
                 const real_t gi = gieq + oms * gineqr;
 
@@ -132,20 +125,20 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
 
                 const real_t g_i = fr_i + fb_i;
 
-                constexpr real_t cx = static_cast<real_t>(D3Q27::cx<i>());
-                constexpr real_t cy = static_cast<real_t>(D3Q27::cy<i>());
-                constexpr real_t cz = static_cast<real_t>(D3Q27::cz<i>());
+                constexpr real_t cx = static_cast<real_t>(LbmStencil::cx<i>());
+                constexpr real_t cy = static_cast<real_t>(LbmStencil::cy<i>());
+                constexpr real_t cz = static_cast<real_t>(LbmStencil::cz<i>());
 
                 jx += g_i * cx;
                 jy += g_i * cy;
                 jz += g_i * cz;
 
-                constexpr real_t Hxx = D3Q27::Hxx<i>();
-                constexpr real_t Hxy = D3Q27::Hxy<i>();
-                constexpr real_t Hyy = D3Q27::Hyy<i>();
-                constexpr real_t Hyz = D3Q27::Hyz<i>();
-                constexpr real_t Hzz = D3Q27::Hzz<i>();
-                constexpr real_t Hxz = D3Q27::Hxz<i>();
+                constexpr real_t Hxx = LbmStencil::Hxx<i>();
+                constexpr real_t Hxy = LbmStencil::Hxy<i>();
+                constexpr real_t Hyy = LbmStencil::Hyy<i>();
+                constexpr real_t Hyz = LbmStencil::Hyz<i>();
+                constexpr real_t Hzz = LbmStencil::Hzz<i>();
+                constexpr real_t Hxz = LbmStencil::Hxz<i>();
 
                 Axx += g_i * Hxx;
                 Axy += g_i * Hxy;
@@ -200,6 +193,7 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
                 real_t absF;
                 real_t Acoef;
 
+                // Interface force uses y-limited indexing for the jet inlet/outlet.
                 preOmega2_outlet_limited(rhor, rhob, xs, ys, zs, Fx, Fy, Fz, absF, Acoef);
 
                 // Second collision operator
@@ -220,20 +214,20 @@ __device__ __forceinline__ void RCS(const MomentsDevice A,
 
             const real_t g_i = fr_i + fb_i;
 
-            constexpr real_t cx = static_cast<real_t>(D3Q27::cx<i>());
-            constexpr real_t cy = static_cast<real_t>(D3Q27::cy<i>());
-            constexpr real_t cz = static_cast<real_t>(D3Q27::cz<i>());
+            constexpr real_t cx = static_cast<real_t>(LbmStencil::cx<i>());
+            constexpr real_t cy = static_cast<real_t>(LbmStencil::cy<i>());
+            constexpr real_t cz = static_cast<real_t>(LbmStencil::cz<i>());
 
             jx += g_i * cx;
             jy += g_i * cy;
             jz += g_i * cz;
 
-            constexpr real_t Hxx = D3Q27::Hxx<i>();
-            constexpr real_t Hxy = D3Q27::Hxy<i>();
-            constexpr real_t Hyy = D3Q27::Hyy<i>();
-            constexpr real_t Hyz = D3Q27::Hyz<i>();
-            constexpr real_t Hzz = D3Q27::Hzz<i>();
-            constexpr real_t Hxz = D3Q27::Hxz<i>();
+            constexpr real_t Hxx = LbmStencil::Hxx<i>();
+            constexpr real_t Hxy = LbmStencil::Hxy<i>();
+            constexpr real_t Hyy = LbmStencil::Hyy<i>();
+            constexpr real_t Hyz = LbmStencil::Hyz<i>();
+            constexpr real_t Hzz = LbmStencil::Hzz<i>();
+            constexpr real_t Hxz = LbmStencil::Hxz<i>();
 
             Axx += g_i * Hxx;
             Axy += g_i * Hxy;

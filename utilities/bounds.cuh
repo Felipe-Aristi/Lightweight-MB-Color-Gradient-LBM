@@ -2,6 +2,7 @@
 #define BOUNDS_CUH
 
 #include "../constants.cuh"
+#include "../stencil_ct.cuh"
 #include "indexing.cuh"
 
 // =======================================================
@@ -84,21 +85,21 @@ template <label_t I>
 __host__ __device__ [[nodiscard]] constexpr inline label_t pullx(const label_t x) noexcept
 {
     return static_cast<label_t>(
-        static_cast<int>(x) - D3Q27::cx<I>());
+        static_cast<int>(x) - LbmStencil::cx<I>());
 }
 
 template <label_t I>
 __host__ __device__ [[nodiscard]] constexpr inline label_t pully(const label_t y) noexcept
 {
     return static_cast<label_t>(
-        static_cast<int>(y) - D3Q27::cy<I>());
+        static_cast<int>(y) - LbmStencil::cy<I>());
 }
 
 template <label_t I>
 __host__ __device__ [[nodiscard]] constexpr inline label_t pullz(const label_t z) noexcept
 {
     return static_cast<label_t>(
-        static_cast<int>(z) - D3Q27::cz<I>());
+        static_cast<int>(z) - LbmStencil::cz<I>());
 }
 
 template <label_t I>

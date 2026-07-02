@@ -25,8 +25,6 @@ int main()
     launch_InitJet(d.A, cfg);
     launch_JetBoundaryConditions(d.A, d.A, cfg);
 
-    // launch_InitStaticBubble(d.A, cfg);
-
     MlupsCounter mlups = make_mlups_counter();
 
     mlups_start(mlups);

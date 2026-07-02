@@ -19,10 +19,10 @@ __device__ __forceinline__ real_t feq(const real_t rho,
                                       const real_t uy,
                                       const real_t uz) noexcept
 {
-    constexpr real_t cx = static_cast<real_t>(D3Q27::cx<I>());
-    constexpr real_t cy = static_cast<real_t>(D3Q27::cy<I>());
-    constexpr real_t cz = static_cast<real_t>(D3Q27::cz<I>());
-    constexpr real_t wi = D3Q27::w<I>();
+    constexpr real_t cx = static_cast<real_t>(LbmStencil::cx<I>());
+    constexpr real_t cy = static_cast<real_t>(LbmStencil::cy<I>());
+    constexpr real_t cz = static_cast<real_t>(LbmStencil::cz<I>());
+    constexpr real_t wi = LbmStencil::w<I>();
 
     const real_t cu = ux * cx + uy * cy + uz * cz;
     const real_t usq = ux * ux + uy * uy + uz * uz;
@@ -46,22 +46,22 @@ __device__ __forceinline__ real_t fneqr(const real_t Pixx,
                                         const real_t uy,
                                         const real_t uz) noexcept
 {
-    constexpr real_t Hxx = D3Q27::Hxx<I>();
-    constexpr real_t Hxy = D3Q27::Hxy<I>();
-    constexpr real_t Hyy = D3Q27::Hyy<I>();
-    constexpr real_t Hyz = D3Q27::Hyz<I>();
-    constexpr real_t Hzz = D3Q27::Hzz<I>();
-    constexpr real_t Hxz = D3Q27::Hxz<I>();
+    constexpr real_t Hxx = LbmStencil::Hxx<I>();
+    constexpr real_t Hxy = LbmStencil::Hxy<I>();
+    constexpr real_t Hyy = LbmStencil::Hyy<I>();
+    constexpr real_t Hyz = LbmStencil::Hyz<I>();
+    constexpr real_t Hzz = LbmStencil::Hzz<I>();
+    constexpr real_t Hxz = LbmStencil::Hxz<I>();
 
-    constexpr real_t Hxxy = D3Q27::Hxxy<I>();
-    constexpr real_t Hxxz = D3Q27::Hxxz<I>();
-    constexpr real_t Hxyy = D3Q27::Hxyy<I>();
-    constexpr real_t Hxzz = D3Q27::Hxzz<I>();
-    constexpr real_t Hyyz = D3Q27::Hyyz<I>();
-    constexpr real_t Hyzz = D3Q27::Hyzz<I>();
-    constexpr real_t Hxyz = D3Q27::Hxyz<I>();
+    constexpr real_t Hxxy = LbmStencil::Hxxy<I>();
+    constexpr real_t Hxxz = LbmStencil::Hxxz<I>();
+    constexpr real_t Hxyy = LbmStencil::Hxyy<I>();
+    constexpr real_t Hxzz = LbmStencil::Hxzz<I>();
+    constexpr real_t Hyyz = LbmStencil::Hyyz<I>();
+    constexpr real_t Hyzz = LbmStencil::Hyzz<I>();
+    constexpr real_t Hxyz = LbmStencil::Hxyz<I>();
 
-    constexpr real_t wi = D3Q27::w<I>();
+    constexpr real_t wi = LbmStencil::w<I>();
 
     const real_t A2neq = (Pixx * Hxx + static_cast<real_t>(2.0) * Pixy * Hxy + Piyy * Hyy + static_cast<real_t>(2.0) * Piyz * Hyz + Pizz * Hzz + static_cast<real_t>(2.0) * Pixz * Hxz) * inv_2cs4;
 
@@ -95,26 +95,26 @@ template <label_t I>
 __device__ __forceinline__ real_t guo_force(const real_t Fx, const real_t Fy, const real_t Fz,
                                             const real_t ux, const real_t uy, const real_t uz) noexcept
 {
-    constexpr real_t wi = D3Q27::w<I>();
+    constexpr real_t wi = LbmStencil::w<I>();
 
-    constexpr real_t cx = static_cast<real_t>(D3Q27::cx<I>());
-    constexpr real_t cy = static_cast<real_t>(D3Q27::cy<I>());
-    constexpr real_t cz = static_cast<real_t>(D3Q27::cz<I>());
+    constexpr real_t cx = static_cast<real_t>(LbmStencil::cx<I>());
+    constexpr real_t cy = static_cast<real_t>(LbmStencil::cy<I>());
+    constexpr real_t cz = static_cast<real_t>(LbmStencil::cz<I>());
 
-    constexpr real_t Hxx = D3Q27::Hxx<I>();
-    constexpr real_t Hxy = D3Q27::Hxy<I>();
-    constexpr real_t Hyy = D3Q27::Hyy<I>();
-    constexpr real_t Hyz = D3Q27::Hyz<I>();
-    constexpr real_t Hzz = D3Q27::Hzz<I>();
-    constexpr real_t Hxz = D3Q27::Hxz<I>();
+    constexpr real_t Hxx = LbmStencil::Hxx<I>();
+    constexpr real_t Hxy = LbmStencil::Hxy<I>();
+    constexpr real_t Hyy = LbmStencil::Hyy<I>();
+    constexpr real_t Hyz = LbmStencil::Hyz<I>();
+    constexpr real_t Hzz = LbmStencil::Hzz<I>();
+    constexpr real_t Hxz = LbmStencil::Hxz<I>();
 
-    constexpr real_t Hxxy = D3Q27::Hxxy<I>();
-    constexpr real_t Hxxz = D3Q27::Hxxz<I>();
-    constexpr real_t Hxyy = D3Q27::Hxyy<I>();
-    constexpr real_t Hxzz = D3Q27::Hxzz<I>();
-    constexpr real_t Hyyz = D3Q27::Hyyz<I>();
-    constexpr real_t Hyzz = D3Q27::Hyzz<I>();
-    constexpr real_t Hxyz = D3Q27::Hxyz<I>();
+    constexpr real_t Hxxy = LbmStencil::Hxxy<I>();
+    constexpr real_t Hxxz = LbmStencil::Hxxz<I>();
+    constexpr real_t Hxyy = LbmStencil::Hxyy<I>();
+    constexpr real_t Hxzz = LbmStencil::Hxzz<I>();
+    constexpr real_t Hyyz = LbmStencil::Hyyz<I>();
+    constexpr real_t Hyzz = LbmStencil::Hyzz<I>();
+    constexpr real_t Hxyz = LbmStencil::Hxyz<I>();
 
     const real_t A1 =
         (Fx * cx + Fy * cy + Fz * cz) * inv_cs2;
